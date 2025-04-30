@@ -1,9 +1,14 @@
 import React from "react";
-import { Container, Button, Row, Col, Carousel } from "react-bootstrap";
+import { Container, Button, Row, Col, Carousel, Card } from "react-bootstrap";
 import { Link } from "react-router-dom";
 
-// Import the background image
 import backgroundImage from "../assets/background.png";
+
+const sectorStocks = {
+  Banking: ["HDFCBANK", "ICICIBANK", "SBIN"],
+  IT: ["INFY", "TCS", "WIPRO"],
+  Auto: ["TATAMOTORS", "EICHERMOT", "BAJAJ-AUTO"],
+};
 
 const HomePage = () => {
   return (
@@ -30,6 +35,33 @@ const HomePage = () => {
           </Link>
         </Container>
       </div>
+
+      {/* 🔥 Sector Stocks Carousel */}
+      <Container className="my-5 text-white text-center stock-card p-3 shadow-sm" style={{ backgroundColor: "rgba(0, 156, 70, 0.94)" }}>
+        <h2 className="text-center mb-4">Explore Sector-Wise Stocks</h2>
+        <Carousel interval={null} indicators={true}>
+          {Object.entries(sectorStocks).map(([sector, stocks], idx) => (
+            <Carousel.Item key={idx}>
+              <h4 className="text-center mb-3">🔹 {sector} Sector</h4>
+              <Row className="justify-content-center">
+                {stocks.map((stock, i) => (
+                  <Col key={i} md={3} className="mb-3">
+                    <Link to={`/stock/${stock}.BSE`} style={{ textDecoration: "none" }}>
+                      <Card className="p-3 shadow-sm text-center h-100 hoverable">
+                        <Card.Body>
+                          <Card.Title>{stock}</Card.Title>
+                          <Card.Text>Symbol: {stock}.BSE</Card.Text>
+                          <Card.Text>Price: ₹--</Card.Text>
+                        </Card.Body>
+                      </Card>
+                    </Link>
+                  </Col>
+                ))}
+              </Row>
+            </Carousel.Item>
+          ))}
+        </Carousel>
+      </Container>
 
       {/* Features Carousel Section */}
       <Container className="my-5 py-5" style={{ backgroundColor: "rgba(0, 0, 128, 0.85)" }}>
@@ -91,6 +123,8 @@ const HomePage = () => {
           </Carousel.Item>
         </Carousel>
       </Container>
+
+      
     </>
   );
 };

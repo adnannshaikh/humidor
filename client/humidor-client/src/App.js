@@ -10,6 +10,7 @@ import SignupPage from "./components/SignupPage";
 import StockDetailsPage from './components/StockDetailsPage';
 import PrivateRoute from "./components/PrivateRoute";  // ✅ Importing
 import NotFoundPage from './components/NotFoundPage';
+import TestAlphaFetch from "./test/TestAlphaFetch";
 
 function App() {
   return (
@@ -38,7 +39,7 @@ function App() {
             </PrivateRoute>
           } 
         />
-
+        <Route path="/test-fetch" element={<TestAlphaFetch />} />
         {/* <Route path="/watchlist" element={<WatchlistPage />} /> */}
       </Routes>
     </Router>

@@ -1,48 +1,42 @@
+// --- FRONTEND: Updated StockDetailsPage.js ---
+
 import React, { useEffect, useState } from "react";
-import { Container, Button, Spinner, Row, Col, Card, ButtonGroup } from "react-bootstrap";
+import { Container, Button, Spinner, Row, Col, Card, ButtonGroup, ToggleButton } from "react-bootstrap";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
-import dummyStockData from "../dummy/stockData";  // Adjust path if needed
-
 import { Chart as ChartJS, LineElement, PointElement, CategoryScale, LinearScale, Title, Tooltip, Legend } from 'chart.js';
+import zoomPlugin from 'chartjs-plugin-zoom';
 import { Line } from 'react-chartjs-2';
 
-ChartJS.register(LineElement, PointElement, CategoryScale, LinearScale, Title, Tooltip, Legend);
+ChartJS.register(LineElement, PointElement, CategoryScale, LinearScale, Title, Tooltip, Legend, zoomPlugin);
 
 const StockDetailsPage = () => {
   const { symbol } = useParams();
   const navigate = useNavigate();
-  
+
   const [stockData, setStockData] = useState(null);
   const [chartData, setChartData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [timeframe, setTimeframe] = useState("1y"); // Default 1 year
-  const [suggestion, setSuggestion] = useState(""); // Moved correctly inside component
+  const [timeframe, setTimeframe] = useState("1y");
+  const [suggestion, setSuggestion] = useState("");
 
-  const fetchStockDetails = async () => {
-    try {
-      const res = await axios.get(`http://localhost:8000/stocks/quotes?symbols=${symbol}`);
-      setStockData(res.data[0]);
-    } catch (error) {
-      console.error("Error fetching stock details:", error);
-    }
-  };
+  useEffect(() => {
+    fetchStock();
+  }, [symbol, timeframe]);
 
-  const fetchPrediction = async (priceHistory) => {
+  const fetchStock = async () => {
+    setLoading(true);
     try {
-      const res = await axios.post('http://localhost:8000/predict', {
-        prices: priceHistory
+      const res = await axios.get("http://localhost:8000/api/stocks/history", {
+        params: { symbol, timeframe },
       });
-      setSuggestion(res.data.suggestion);
-    } catch (error) {
-      console.error('Error fetching prediction:', error);
-    }
-  };
-
-  const fetchStockHistory = async () => {
-    try {
-      const res = await axios.get(`http://localhost:8000/stocks/history?symbol=${symbol}&period=${timeframe}`);
       const history = res.data;
+
+      setStockData({
+        name: symbol.split(".")[0],
+        price: history.prices[history.prices.length - 1],
+        changePercent: ((history.prices.at(-1) - history.prices[0]) / history.prices[0] * 100).toFixed(2),
+      });
 
       setChartData({
         labels: history.dates,
@@ -50,74 +44,51 @@ const StockDetailsPage = () => {
           {
             label: `${symbol} Price`,
             data: history.prices,
-            fill: false,
-            borderColor: "blue",
-            tension: 0.3,
+            fill: true,
+            backgroundColor: "rgba(65, 105, 225, 0.1)",
+            borderColor: "royalblue",
+            tension: 0.4,
+            pointRadius: 1,
           },
         ],
       });
 
-      fetchPrediction(history.prices);  // ✅ After setting chart, predict
-      setLoading(false);
-    } catch (error) {
-      console.error("Error fetching stock history:", error);
-      setLoading(false);
-    }
-  };
-
-//   useEffect(() => {
-//     fetchStockDetails();
-//     fetchStockHistory();
-//     // eslint-disable-next-line react-hooks/exhaustive-deps
-//   }, [symbol, timeframe]);
-useEffect(() => {
-    setStockData({
-      name: dummyStockData.name,
-      price: dummyStockData.price,
-      changePercent: dummyStockData.changePercent,
-    });
-  
-    setChartData({
-      labels: dummyStockData.history.dates,
-      datasets: [
-        {
-          label: `${dummyStockData.symbol} Price`,
-          data: dummyStockData.history.prices,
-          fill: false,
-          borderColor: "blue",
-          tension: 0.3,
-        },
-      ],
-    });
-  
-    setSuggestion(dummyStockData.suggestion);
-  
-    setLoading(false);
-  }, []);
-  
-
-  const handleTimeframeChange = (newTimeframe) => {
-    setTimeframe(newTimeframe);
-  };
-
-  const handleAddToWatchlist = async () => {
-    try {
-      const userId = localStorage.getItem("userId");
-
-      await axios.post("/api/watchlist/add", {
-        userId,
-        stock: stockData,
+      const predRes = await axios.post("http://localhost:8000/predict", {
+        prices: history.prices,
       });
-
-      alert(`${stockData.name} added to Watchlist!`);
-    } catch (error) {
-      console.error("Error adding to watchlist:", error);
+      setSuggestion(predRes.data.suggestion);
+    } catch (err) {
+      console.error("Error fetching stock history:", err);
     }
+    setLoading(false);
+  };
+
+  const chartOptions = {
+    responsive: true,
+    plugins: {
+      legend: { display: false },
+      tooltip: { enabled: true },
+      zoom: {
+        zoom: {
+          wheel: { enabled: true },
+          pinch: { enabled: true },
+          mode: "x",
+        },
+        pan: {
+          enabled: true,
+          mode: "x",
+        },
+      },
+    },
+    scales: {
+      x: { grid: { color: "#e0e0e0" } },
+      y: { grid: { color: "#e0e0e0" } },
+    },
   };
 
   return (
     <Container className="py-5">
-      <Button variant="secondary" onClick={() => navigate("/dashboard")}>← Back</Button>
+      <Button variant="outline-secondary" onClick={() => navigate("/dashboard")}>← Back</Button>
 
       {loading ? (
         <div className="text-center py-5">
@@ -125,10 +96,8 @@ useEffect(() => {
         </div>
       ) : (
         <>
-          {/* <h2 className="text-center my-4">{stockData?.name} ({symbol})</h2> */}
-          <h2 className="text-center my-4">{stockData?.name} ({dummyStockData.symbol})</h2>
-
-          <h4 className="text-center mb-2">₹{stockData?.price}</h4>
+          <h2 className="text-center my-4">{stockData?.name} ({symbol})</h2>
+          <h4 className="text-center mb-2 text-primary">₹{stockData?.price}</h4>
           <p className="text-center text-muted">
             Change: {stockData?.changePercent}%
           </p>
@@ -139,30 +108,34 @@ useEffect(() => {
             <Col><strong>Volume:</strong> --</Col>
           </Row>
 
-          {/* 🧠 AI Prediction Card */}
-          <Card className="p-4 text-center mb-4 shadow">
-            <h5>🤖 AI Suggestion:</h5>
-            <h4 className={suggestion === "Buy" ? "text-success" : suggestion === "Sell" ? "text-danger" : "text-warning"}>
+          <Card className="p-4 text-center mb-5 shadow-lg border-0">
+            <h5 className="mb-2">🤖 AI Suggestion</h5>
+            <h2 className={suggestion === "Buy" ? "text-success" : suggestion === "Sell" ? "text-danger" : "text-warning"}>
               {suggestion || "Loading..."}
-            </h4>
+            </h2>
           </Card>
 
-          <div className="d-flex justify-content-center mb-3">
+          <div className="d-flex justify-content-center mb-4">
             <ButtonGroup>
-              <Button variant="outline-primary" onClick={() => handleTimeframeChange("1d")}>1D</Button>
-              <Button variant="outline-primary" onClick={() => handleTimeframeChange("1mo")}>1M</Button>
-              <Button variant="outline-primary" onClick={() => handleTimeframeChange("6mo")}>6M</Button>
-              <Button variant="outline-primary" onClick={() => handleTimeframeChange("1y")}>1Y</Button>
+              {["1d", "1mo", "6mo", "1y"].map((frame) => (
+                <ToggleButton
+                  key={frame}
+                  type="radio"
+                  variant={frame === timeframe ? "primary" : "outline-primary"}
+                  name="timeframe"
+                  value={frame}
+                  checked={timeframe === frame}
+                  onChange={() => setTimeframe(frame)}
+                >
+                  {frame.toUpperCase()}
+                </ToggleButton>
+              ))}
             </ButtonGroup>
           </div>
 
-          {chartData && <Line data={chartData} />}
-
-          {/* <div className="text-center mt-4">
-            <Button variant="success" onClick={handleAddToWatchlist}>
-              ➕ Add to Watchlist
-            </Button>
-          </div> */}
+          <Card className="p-4 shadow-sm mb-5">
+            {chartData && <Line data={chartData} options={chartOptions} />}
+          </Card>
         </>
       )}
     </Container>
