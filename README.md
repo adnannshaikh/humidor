@@ -30,8 +30,9 @@
 
 ## 📷 Screenshots
 
+![Home](./screenshots/home.png)
 ![Dashboard](./screenshots/dashboard.png)  
 ![Chart](./screenshots/chart.png)  
-![Home](./screenshots/home.png)
+
 
 ---
